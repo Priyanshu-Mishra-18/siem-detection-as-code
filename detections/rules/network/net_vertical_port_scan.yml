@@ -1,0 +1,42 @@
+title: Network Connections to Many Ports From One Source
+id: 6f3c1e2a-4b7d-4c19-9e2f-1a5b8d0c7e31
+name: net_firewall_connections
+status: experimental
+description: Base rule. Selects firewall traffic events. Used by the correlation rule below.
+author: Priyanshu
+date: 2026-10-24
+logsource:
+    category: firewall
+detection:
+    selection:
+        dest_port|exists: true
+    condition: selection
+level: informational
+---
+title: Vertical Port Scan - Single Source Hitting Many Ports
+id: 9b2d4f61-3a8e-4d75-b0c4-5e7f1a2c9d48
+status: experimental
+description: >
+    Detects one source IP connecting to more than 20 distinct destination
+    ports within 15 minutes, a typical sign of a vertical port scan.
+author: Priyanshu
+date: 2026-10-24
+references:
+    - https://attack.mitre.org/techniques/T1046/
+tags:
+    - attack.discovery
+    - attack.t1046
+correlation:
+    type: value_count
+    rules:
+        - net_firewall_connections
+    group-by:
+        - src_ip
+    timespan: 15m
+    condition:
+        field: dest_port
+        gt: 20
+falsepositives:
+    - Authorized vulnerability scanners
+    - Network monitoring tools
+level: high

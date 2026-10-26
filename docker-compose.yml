@@ -1,0 +1,33 @@
+services:
+  splunk:
+    image: splunk/splunk:latest
+    container_name: splunk
+    environment:
+      - SPLUNK_START_ARGS=--accept-license
+      - SPLUNK_GENERAL_TERMS=--accept-sgt-current-at-splunk-com
+      # Secrets come from the .env file next to this one (never committed to Git)
+      - SPLUNK_PASSWORD=${SPLUNK_PASSWORD}
+      - SPLUNK_HEC_TOKEN=${SPLUNK_HEC_TOKEN}
+    ports:
+      - "8000:8000"     # Splunk Web UI
+      - "8088:8088"     # HTTP Event Collector (HEC) - Cribl sends data here
+      - "8089:8089"     # Splunk management port (REST API, used by CI/CD later)
+    volumes:
+      - splunk-var:/opt/splunk/var
+      - splunk-etc:/opt/splunk/etc
+
+  cribl:
+    image: cribl/cribl:latest
+    container_name: cribl
+    ports:
+      - "9000:9000"     # Cribl Stream UI
+      - "10080:10080"   # Spare HTTP source port
+    volumes:
+      - cribl-data:/opt/cribl/data
+    depends_on:
+      - splunk
+
+volumes:
+  splunk-var:
+  splunk-etc:
+  cribl-data:
