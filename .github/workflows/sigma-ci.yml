@@ -1,0 +1,44 @@
+name: Sigma CI
+
+# Run on every push and every pull request that touches a detection
+on:
+  push:
+    paths:
+      - "detections/**"
+      - ".github/workflows/sigma-ci.yml"
+  pull_request:
+    paths:
+      - "detections/**"
+  workflow_dispatch:   # adds a "Run workflow" button in the Actions tab
+
+jobs:
+  validate-and-convert:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Sigma tools
+        run: pip install sigma-cli pysigma-backend-splunk
+
+      - name: Validate rules (fail on any error or issue)
+        run: sigma check --fail-on-error --fail-on-issues detections/rules/
+
+      - name: Convert rules to Splunk SPL
+        run: |
+          mkdir -p build
+          sigma convert -t splunk --without-pipeline detections/rules/ -o build/detections.spl
+          echo "----- Generated SPL -----"
+          cat build/detections.spl
+
+      - name: Save the SPL as a downloadable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: splunk-spl
+          path: build/detections.spl
