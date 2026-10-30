@@ -55,6 +55,29 @@ sigma check detections/rules/
 sigma convert -t splunk --without-pipeline detections/rules/
 ```
 
+## Deploy to Splunk
+
+`scripts/deploy_to_splunk.py` converts every Sigma correlation rule and
+creates (or updates) the matching scheduled alert through Splunk's REST API
+on port 8089. Alert settings are derived from the rule: `timespan` sets the
+schedule and search window, `level` sets the severity, `group-by` sets the
+throttling field. It reads credentials from `.env` and is idempotent.
+
+```
+python scripts/deploy_to_splunk.py --dry-run   # preview
+python scripts/deploy_to_splunk.py             # deploy
+```
+
+Deployed alerts are prefixed `Sigma - ` to separate code-managed alerts from
+manual ones.
+
+## CI
+
+GitHub Actions (`.github/workflows/sigma-ci.yml`) validates every rule with
+`sigma check --fail-on-issues` and converts it to SPL on each push that
+touches `detections/`. A broken rule fails the build before any SPL is
+generated.
+
 ## Security notes
 
 - Secrets live only in `.env`, which is excluded by `.gitignore`.
