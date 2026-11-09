@@ -1,0 +1,46 @@
+title: Inbound Remote Admin Port Allowed From Internet
+id: 3e8a1c52-7d4b-4f90-a6e1-2b9c0d5f8e17
+name: net_firewall_inbound_admin_port
+status: experimental
+description: Base rule. Allowed connections from the internet to SSH or RDP.
+author: Priyanshu
+date: 2026-11-09
+logsource:
+    category: firewall
+detection:
+    selection:
+        src_zone: untrusted
+        action: allow
+        dest_port:
+            - 22
+            - 3389
+    condition: selection
+level: informational
+---
+title: Internet Host Reached Remote Admin Port
+id: 7c4f2a9e-1b3d-4e8f-9a6c-5d2e8b1f0a73
+status: experimental
+description: An internet host got an allowed connection to SSH (22) or RDP (3389).
+author: Priyanshu
+date: 2026-11-09
+references:
+    - https://attack.mitre.org/techniques/T1133/
+tags:
+    - attack.initial-access
+    - attack.t1133
+correlation:
+    type: event_count
+    rules:
+        - net_firewall_inbound_admin_port
+    group-by:
+        - src_ip
+    timespan: 15m
+    condition:
+        gte: 1
+rba:
+    score: 30
+    object_type: system
+    message: "Internet host reached a remote admin port ({event_count} allowed connections)"
+falsepositives:
+    - Administrators connecting remotely without a VPN
+level: medium

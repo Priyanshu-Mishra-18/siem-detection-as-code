@@ -36,6 +36,10 @@ correlation:
     condition:
         field: dest_port
         gt: 20
+rba:
+    score: 40
+    object_type: system
+    message: "Vertical port scan: {value_count} distinct ports in 15 minutes"
 falsepositives:
     - Authorized vulnerability scanners
     - Network monitoring tools
