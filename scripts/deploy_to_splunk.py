@@ -132,11 +132,13 @@ def build_from_rules(event_index: str, risk_index: str) -> list[dict]:
                 f"risk_object_type=\"{rba.get('object_type', 'system')}\", "
                 f"risk_score={int(rba['score'])}, "
                 f"mitre_technique=\"{mitre_techniques(rule)}\", "
+                f"risk_rule_id=\"{rule.id}\", "
                 f"risk_message={message_to_spl(rba['message'])}\n"
-                f"| table _time risk_object risk_object_type risk_score risk_message mitre_technique\n"
+                f"| table _time risk_object risk_object_type risk_score risk_message mitre_technique risk_rule_id\n"
                 f"| collect index={risk_index}"
             )
             # No search_name here on purpose: Splunk fills it with this report's name.
+            # risk_rule_id is the Sigma rule id: it never changes, even if the title does.
             items.append({
                 "name": f"RBA - {rule.title}",
                 "kind": "risk report",
@@ -167,8 +169,10 @@ def build_from_rules(event_index: str, risk_index: str) -> list[dict]:
 def build_risk_alert(risk_index: str) -> dict:
     search = (
         f"index={risk_index}\n"
+        f"| eval rule_key=coalesce(risk_rule_id, search_name)\n"
         f"| stats sum(risk_score) AS total_risk,\n"
-        f"        dc(search_name) AS distinct_detections,\n"
+        f"        dc(rule_key) AS distinct_detections,\n"
+        f"        values(search_name) AS detections,\n"
         f"        values(risk_message) AS what_happened,\n"
         f"        values(mitre_technique) AS techniques,\n"
         f"        min(_time) AS first_seen, max(_time) AS last_seen\n"
