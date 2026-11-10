@@ -1,3 +1,6 @@
+# Ports are bound to 127.0.0.1 so the lab is reachable only from this machine,
+# not from other devices on the same network. Cribl reaches Splunk over the
+# internal Docker network (splunk:8088), so this does not affect the pipeline.
 services:
   splunk:
     image: splunk/splunk:latest
@@ -9,9 +12,9 @@ services:
       - SPLUNK_PASSWORD=${SPLUNK_PASSWORD}
       - SPLUNK_HEC_TOKEN=${SPLUNK_HEC_TOKEN}
     ports:
-      - "8000:8000"     # Splunk Web UI
-      - "8088:8088"     # HTTP Event Collector (HEC) - Cribl sends data here
-      - "8089:8089"     # Splunk management port (REST API, used by CI/CD later)
+      - "127.0.0.1:8000:8000"     # Splunk Web UI
+      - "127.0.0.1:8088:8088"     # HTTP Event Collector (HEC) - Cribl sends data here
+      - "127.0.0.1:8089:8089"     # Splunk management port (REST API, used by the deploy script)
     volumes:
       - splunk-var:/opt/splunk/var
       - splunk-etc:/opt/splunk/etc
@@ -19,11 +22,17 @@ services:
   cribl:
     image: cribl/cribl:latest
     container_name: cribl
+    environment:
+      # Cribl keeps its configuration (users, sources, destinations, pipelines,
+      # its own Git history) here. Without a volume at this path, recreating
+      # the container resets Cribl to factory settings.
+      - CRIBL_VOLUME_DIR=/opt/cribl/config-volume
     ports:
-      - "9000:9000"     # Cribl Stream UI
-      - "10080:10080"   # Spare HTTP source port
+      - "127.0.0.1:9000:9000"     # Cribl Stream UI
+      - "127.0.0.1:10080:10080"   # Spare HTTP source port
     volumes:
       - cribl-data:/opt/cribl/data
+      - cribl-config:/opt/cribl/config-volume
     depends_on:
       - splunk
 
@@ -31,3 +40,4 @@ volumes:
   splunk-var:
   splunk-etc:
   cribl-data:
+  cribl-config:
