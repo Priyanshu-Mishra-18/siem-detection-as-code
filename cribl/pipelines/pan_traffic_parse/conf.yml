@@ -1,0 +1,171 @@
+output: default
+streamtags: []
+groups: {}
+asyncFuncTimeout: 1000
+functions:
+  - id: serde
+    filter: "true"
+    conf:
+      mode: extract
+      type: csv
+      srcField: _raw
+      fields:
+        - future_use_0
+        - receive_time
+        - serial_number
+        - type
+        - threat_content_type
+        - future_use_1
+        - generated_time
+        - source_ip
+        - destination_ip
+        - nat_source_ip
+        - nat_destination_ip
+        - rule_name
+        - source_user
+        - destination_user
+        - application
+        - virtual_system
+        - source_zone
+        - destination_zone
+        - inbound_interface
+        - outbound_interface
+        - log_action
+        - future_use_2
+        - session_id
+        - repeat_count
+        - source_port
+        - destination_port
+        - nat_source_port
+        - nat_destination_port
+        - flags
+        - protocol
+        - action
+        - bytes
+        - bytes_sent
+        - bytes_received
+        - packets
+        - start_time
+        - elapsed_time
+        - category
+        - future_use_3
+        - sequence_number
+        - action_flags
+        - source_location
+        - destination_location
+        - future_use_4
+        - packets_sent
+        - packets_received
+        - session_end_reason
+        - device_group_hierarchy_level_1
+        - device_group_hierarchy_level_2
+        - device_group_hierarchy_level_3
+        - device_group_hierarchy_level_4
+        - virtual_system_name
+        - device_name
+        - action_source
+        - source_vm_uuid
+        - destination_vm_uuid
+        - tunnel_id_imsi
+        - monitor_tag_imei
+        - parent_session_id
+        - parent_start_time
+        - tunnel_type
+        - sctp_association_id
+        - sctp_chunks
+        - sctp_chunks_sent
+        - sctp_chunks_received
+      keep:
+        - source_ip
+        - destination_ip
+        - source_port
+        - destination_port
+        - protocol
+        - application
+        - action
+        - rule_name
+        - source_zone
+        - destination_zone
+        - bytes_sent
+        - bytes_received
+        - source_location
+        - session_end_reason
+        - device_name
+    description: Parse PAN traffic CSV and keep analyst-relevant fields
+  - id: rename
+    filter: "true"
+    conf:
+      wildcardDepth: 5
+      rename:
+        - currentName: source_ip
+          newName: src_ip
+        - currentName: destination_ip
+          newName: dest_ip
+        - currentName: source_port
+          newName: src_port
+        - currentName: destination_port
+          newName: dest_port
+        - currentName: protocol
+          newName: transport
+        - currentName: application
+          newName: app
+        - currentName: rule_name
+          newName: rule
+        - currentName: source_zone
+          newName: src_zone
+        - currentName: destination_zone
+          newName: dest_zone
+        - currentName: bytes_sent
+          newName: bytes_out
+        - currentName: bytes_received
+          newName: bytes_in
+        - currentName: device_name
+          newName: dvc
+    description: Rename PAN fields to Splunk CIM names
+  - id: serialize
+    filter: "true"
+    conf:
+      type: kvp
+      fields:
+        - src_ip
+        - src_port
+        - src_zone
+        - dest_ip
+        - dest_port
+        - dest_zone
+        - transport
+        - app
+        - action
+        - rule
+        - bytes_out
+        - bytes_in
+        - source_location
+        - session_end_reason
+        - dvc
+      dstField: _raw
+      cleanFields: false
+      keyValueDelimiter: =
+    description: Rebuild _raw as key=value with only CIM fields
+  - id: eval
+    filter: "true"
+    conf:
+      printUndefineds: false
+      remove:
+        - src_ip
+        - src_port
+        - src_zone
+        - dest_ip
+        - dest_port
+        - dest_zone
+        - transport
+        - app
+        - action
+        - rule
+        - bytes_out
+        - bytes_in
+        - source_location
+        - session_end_reason
+        - dvc
+        - cribl_pipe
+    description: Remove fields now duplicated inside _raw
+description: Parse and reduce Palo Alto traffic logs
