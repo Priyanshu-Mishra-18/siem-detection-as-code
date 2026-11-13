@@ -41,6 +41,29 @@ Datagen (Palo Alto traffic) -> Cribl Stream -> Splunk HEC -> index=lab_security
    - Splunk Web: http://localhost:8000 (user `admin`, password from `.env`)
    - Cribl Stream: http://localhost:9000
 
+## Cribl configuration: persistence and restore
+
+Cribl keeps its configuration (users, sources, destinations, pipelines) in
+`CRIBL_VOLUME_DIR=/opt/cribl/config-volume`, which is mounted on the
+`cribl-config` Docker volume. Recreating the container keeps the configuration.
+
+> Lesson learned: an earlier version mounted only `/opt/cribl/data`. Recreating
+> the container after a port change reset Cribl to factory settings and the
+> pipeline had to be rebuilt. The fix (config volume) was verified with
+> `docker compose up -d --force-recreate cribl`.
+
+The pipeline itself is also stored as code in `cribl/pipelines/pan_traffic_parse/`.
+Restore it into a running Cribl (tested by restoring under a test name and
+comparing the preview output):
+
+```
+docker cp cribl\pipelines\pan_traffic_parse cribl:/opt/cribl/config-volume/local/cribl/pipelines/pan_traffic_parse
+docker compose restart cribl
+```
+
+Then check **Processing → Pipelines**: `pan_traffic_parse` shows 4 functions.
+Use `restart`, not `down`/`up --force-recreate`, for routine reloads.
+
 ## Detections
 
 | Rule | ATT&CK | RBA score | Description |
