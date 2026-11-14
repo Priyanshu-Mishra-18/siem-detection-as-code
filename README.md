@@ -17,6 +17,30 @@ Datagen (Palo Alto traffic) -> Cribl Stream -> Splunk HEC -> index=lab_security
 - Detections are written as Sigma rules in `detections/rules/` and converted
   to SPL with `sigma-cli`.
 
+## What this project demonstrates
+
+- **Data pipeline engineering (Cribl):** parses Palo Alto traffic logs,
+  normalizes them to Splunk CIM and cuts `_raw` size by ~44% with zero event loss.
+- **Detection-as-code:** detections are written once as vendor-neutral Sigma
+  rules, validated in CI and converted to SPL automatically.
+- **Risk-Based Alerting:** detections add risk points to an entity; one alert
+  fires when the total crosses a threshold, instead of many noisy alerts.
+- **Automated deployment:** one Python script deploys indexes, risk reports and
+  alerts through Splunk's REST API (idempotent: safe to run again).
+- **Operational hygiene:** secrets kept out of Git (history scanned before
+  publishing), services bound to localhost, pipeline config backed up as code
+  with a tested restore.
+
+## Repository layout
+
+```
+.github/workflows/sigma-ci.yml       CI: validate and convert Sigma rules
+cribl/pipelines/pan_traffic_parse/   Cribl pipeline exported as code
+detections/rules/                    Sigma detection rules (with rba: blocks)
+scripts/deploy_to_splunk.py          Deploys detections and RBA to Splunk
+docker-compose.yml                   Splunk + Cribl lab
+```
+
 ## Prerequisites
 
 - Docker Desktop (8 GB RAM free recommended)
@@ -132,6 +156,7 @@ severity of direct alerts. It reads credentials from `.env` and is idempotent
 one command.
 
 ```
+pip install sigma-cli pysigma-backend-splunk requests
 python scripts/deploy_to_splunk.py --dry-run   # preview
 python scripts/deploy_to_splunk.py             # deploy
 ```
@@ -149,3 +174,14 @@ generated.
 - The lab disables TLS certificate validation between Cribl and Splunk because
   Splunk uses a self-signed certificate. In production, use a CA-signed
   certificate and keep validation on.
+- All ports are bound to 127.0.0.1, so the lab is reachable only from this
+  machine.
+
+## Roadmap
+
+- AI triage agent: read RBA alerts through the Splunk REST API, build an attack
+  timeline, map it to MITRE ATT&CK and suggest next steps.
+
+## License
+
+MIT. See `LICENSE`.
